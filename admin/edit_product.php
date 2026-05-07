@@ -1,38 +1,39 @@
 <?php
-$conn = mysqli_connect("localhost", "root", "", "ecommerce1");
+include '../includes/db.php';
 
-// Get ID safely
-if(isset($_GET['id'])){
-    $id = $_GET['id'];
-} else {
-    echo "No ID found";
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+if (!isset($_GET['id'])) {
+    echo "No product ID found!";
     exit();
 }
 
-// Fetch product data
-$query = "SELECT * FROM products WHERE id='$id'";
-$result = mysqli_query($conn, $query);
-$row = mysqli_fetch_assoc($result);
+$id = $_GET['id'];
 
-if(!$row){
-    echo "Product not found";
+$stmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
+$stmt->execute([$id]);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$row) {
+    echo "Product not found!";
     exit();
 }
 
-// Update product
-if(isset($_POST['update'])){
+if (isset($_POST['update'])) {
     $name = $_POST['name'];
     $price = $_POST['price'];
     $description = $_POST['description'];
 
-    $update = "UPDATE products SET 
-        name='$name',
-        price='$price',
-        description='$description'
-        WHERE id='$id'";
+    $stmt = $conn->prepare("UPDATE products SET name = ?, price = ?, description = ? WHERE id = ?");
 
-    if(mysqli_query($conn, $update)){
+    if ($stmt->execute([$name, $price, $description, $id])) {
         $success = "Product updated successfully!";
+
+        $stmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
     } else {
         $error = "Error updating product!";
     }
@@ -43,39 +44,79 @@ if(isset($_POST['update'])){
 <html>
 <head>
     <title>Edit Product</title>
-
     <style>
         body {
-            font-family: Arial;
-            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+            background: #f4f7fa;
+            margin: 0;
+            padding: 0;
         }
 
         .container {
-            width: 400px;
+            width: 420px;
             margin: 80px auto;
             background: white;
-            padding: 25px;
+            padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
 
         h2 {
             text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
         }
 
         input[type="text"] {
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
+            margin: 8px 0 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
 
-        input[type="submit"] {
+        textarea {
             width: 100%;
             padding: 10px;
-            background: green;
+            margin: 8px 0 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
             color: white;
             border: none;
+            border-radius: 5px;
+            font-size: 15px;
             cursor: pointer;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+
+        .back {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .back:hover {
+            background: #0056b3;
         }
 
         .message {
@@ -104,27 +145,27 @@ if(isset($_POST['update'])){
     <h2>Edit Product</h2>
 
     <form method="POST">
-
         <label>Name:</label>
-        <input type="text" name="name" value="<?= $row['name']; ?>">
+        <input type="text" name="name" value="<?= htmlspecialchars($row['name']); ?>" required>
 
         <label>Price:</label>
-        <input type="text" name="price" value="<?= $row['price']; ?>">
+        <input type="text" name="price" value="<?= htmlspecialchars($row['price']); ?>" required>
 
         <label>Description:</label>
-        <input type="text" name="description" value="<?= $row['description']; ?>">
+        <textarea name="description" required><?= htmlspecialchars($row['description']); ?></textarea>
 
-        <input type="submit" name="update" value="Update Product">
-
-        <?php if(isset($success)) { ?>
-            <div class="message"><?= $success; ?></div>
-        <?php } ?>
-
-        <?php if(isset($error)) { ?>
-            <div class="error"><?= $error; ?></div>
-        <?php } ?>
-
+        <button type="submit" name="update">Update Product</button>
     </form>
+
+    <?php if (isset($success)) { ?>
+        <div class="message"><?= $success; ?></div>
+    <?php } ?>
+
+    <?php if (isset($error)) { ?>
+        <div class="error"><?= $error; ?></div>
+    <?php } ?>
+
+    <a href="manage_products.php" class="back">Back to Manage Products</a>
 </div>
 
 </body>

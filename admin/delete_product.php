@@ -1,22 +1,23 @@
 <?php
-$conn = mysqli_connect("localhost", "root", "", "ecommerce1");
+include '../includes/db.php';
 
-// Check if ID is coming
-if(isset($_GET['id'])){
-    $id = $_GET['id'];
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-    // Delete query
-    $delete = "DELETE FROM products WHERE id='$id'";
+if (!isset($_GET['id'])) {
+    echo "No product ID found!";
+    exit();
+}
 
-    if(mysqli_query($conn, $delete)){
-        // Redirect back to manage page
-        header("Location: manage_products.php");
-        exit();
-    } else {
-        echo "Error deleting product";
-    }
+$id = $_GET['id'];
 
+$stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
+
+if ($stmt->execute([$id])) {
+    header("Location: manage_products.php?deleted=success");
+    exit();
 } else {
-    echo "No ID received";
+    echo "Error deleting product!";
 }
 ?>
